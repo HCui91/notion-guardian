@@ -1,5 +1,5 @@
 const axios = require(`axios`);
-const extract = require(`extract-zip`);
+const AdmZip = require('adm-zip');
 const { createWriteStream } = require(`fs`);
 const { rm, mkdir, unlink } = require(`fs/promises`);
 const { join } = require(`path`);
@@ -85,6 +85,21 @@ const exportFromNotion = async (destination, format) => {
   });
 };
 
+function extractZip(filename, destination) {
+  const zip = new AdmZip(filename);
+  zip.extractAllTo(destination, /* overwrite */ true);
+
+  // Check if any files with name ending in "Part-*.zip" were extracted
+  const extractedFiles = zip.getEntries().map(entry => entry.entryName);
+  const partFiles = extractedFiles.filter(name => name.match(/Part-\d+\.zip/));
+
+  // Extract any "Part-*.zip" files that were found
+  partFiles.forEach(partFile => {
+    const partZip = new AdmZip(partFile);
+    partZip.extractAllTo(destination, /* overwrite */ true);
+  });
+};
+
 const run = async () => {
   const workspaceDir = join(process.cwd(), `workspace`);
   const workspaceZip = join(process.cwd(), `workspace.zip`);
@@ -92,7 +107,7 @@ const run = async () => {
   await exportFromNotion(workspaceZip, `markdown`);
   await rm(workspaceDir, { recursive: true, force: true });
   await mkdir(workspaceDir, { recursive: true });
-  await extract(workspaceZip, { dir: workspaceDir });
+  extractZip(workspaceZip, workspaceDir );
   await unlink(workspaceZip);
 
   console.log(`✅ Export downloaded and unzipped.`);
