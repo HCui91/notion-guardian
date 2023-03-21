@@ -1,6 +1,6 @@
 const axios = require(`axios`);
 const AdmZip = require('adm-zip');
-const { createWriteStream } = require(`fs`);
+const { createWriteStream, readdirSync, renameSync, rmdirSync } = require(`fs`);
 const { rm, mkdir, unlink } = require(`fs/promises`);
 const { join } = require(`path`);
 
@@ -89,15 +89,31 @@ function extractZip(filename, destination) {
   const zip = new AdmZip(filename);
   zip.extractAllTo(destination, /* overwrite */ true);
 
-  // Check if any files with name ending in "Part-*.zip" were extracted
   const extractedFiles = zip.getEntries().map(entry => entry.entryName);
   const partFiles = extractedFiles.filter(name => name.match(/Part-\d+\.zip/));
-
+  
   // Extract any "Part-*.zip" files that were found
-  partFiles.forEach(partFile => {
+  for (const partFile of partFiles) {
     partFile = join(destination, partFile);
     const partZip = new AdmZip(partFile);
     partZip.extractAllTo(destination, /* overwrite */ true);
+    unlink(partFile); // Delete the extracted "Part-*.zip" file
+  };
+
+  // Check if any folders with name starting with "Export-*" were extracted
+  const extractedFolders = readdirSync(destination);
+  const exportFolders = extractedFolders.filter(name => name.startsWith("Export-"));
+
+  // Move the contents of any "Export-*" folders to the destination folder
+  exportFolders.forEach(folderName => {
+    const folderPath = join(destination, folderName);
+    const contents = readdirSync(folderPath);
+    contents.forEach(file => {
+      const filePath = join(folderPath, file);
+      const newFilePath = join(destination, file);
+      renameSync(filePath, newFilePath);
+    });
+    rmdirSync(folderPath);
   });
 };
 
