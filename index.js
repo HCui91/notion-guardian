@@ -93,12 +93,12 @@ function extractZip(filename, destination) {
   const partFiles = extractedFiles.filter(name => name.match(/Part-\d+\.zip/));
   
   // Extract any "Part-*.zip" files that were found
-  for (const partFile of partFiles) {
+  partFiles.forEach(partFile=> {
     partFile = join(destination, partFile);
     const partZip = new AdmZip(partFile);
     partZip.extractAllTo(destination, /* overwrite */ true);
     unlink(partFile); // Delete the extracted "Part-*.zip" file
-  };
+  });
 
   // Check if any folders with name starting with "Export-*" were extracted
   const extractedFolders = readdirSync(destination);
