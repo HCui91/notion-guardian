@@ -95,6 +95,7 @@ function extractZip(filename, destination) {
 
   // Extract any "Part-*.zip" files that were found
   partFiles.forEach(partFile => {
+    partFile = join(destination, partFile);
     const partZip = new AdmZip(partFile);
     partZip.extractAllTo(destination, /* overwrite */ true);
   });
